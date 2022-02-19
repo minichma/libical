@@ -1,0 +1,26 @@
+
+FROM ubuntu
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update
+RUN apt-get install -y build-essential
+RUN apt-get install -y cmake
+RUN apt-get install -y ninja-build
+RUN apt-get install -y libicu-dev
+RUN apt-get install -y libxml2-dev
+RUN apt-get install -y libglib2.0
+RUN apt-get install -y pkg-config
+RUN apt-get install -y cppcheck
+RUN apt-get install -y g++ rsync zip openssh-server make
+RUN mkdir -p /var/run/sshd
+
+RUN echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config && ssh-keygen -A
+
+RUN useradd -m -d /home/user -s /bin/bash -G sudo user
+CMD service ssh start && bash
+
+# run this image like
+# docker run -p 5000:22 -i -t libical
+
+# don't forget to specify a password for user 'user' like so
+# passwd user
