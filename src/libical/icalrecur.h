@@ -322,9 +322,25 @@ LIBICAL_ICAL_EXPORT void icalrecurrencetype_free(struct icalrecurrencetype* recu
 
 typedef struct icalrecur_iterator_impl icalrecur_iterator;
 
-/** Creates a new recurrence rule iterator, starting at DTSTART. */
-LIBICAL_ICAL_EXPORT icalrecur_iterator *icalrecur_iterator_new(struct icalrecurrencetype rule,
-                                                               struct icaltimetype dtstart);
+/** Creates a new recurrence rule iterator, starting at DTSTART.
+ *  @deprecated use icalrecur_iterator_new_r() instead
+ */
+LIBICAL_ICAL_EXPORT icalrecur_iterator* icalrecur_iterator_new(struct icalrecurrencetype rule,
+    struct icaltimetype dtstart);
+
+/** Creates a new recurrence rule iterator, starting at DTSTART.
+ *
+ *  The passed rule object is referenced by the returned iterator and therefore must stay valid and
+ *  mustn't be modified during the lifetime of the returned iterator.
+ *
+ *  If @p takeOwnership is set to <> 0, then the returned iterator takes ownership of the specified
+ *  rule object and takes care of freeing it when it isn't being used anymore. If set to 0 or
+ *  if creation of the iterator fails, then the caller needs to take care of freeing the passed
+ *  rule object at or after the end of the iterator's lifetime.
+ *  @since 3.1
+ */
+LIBICAL_ICAL_EXPORT icalrecur_iterator* icalrecur_iterator_new_r(struct icalrecurrencetype *rule,
+    struct icaltimetype dtstart, int takeOwnership);
 
 /**
  * Sets the date-time at which the iterator will start,
