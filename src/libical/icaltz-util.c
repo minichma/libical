@@ -709,8 +709,9 @@ icalcomponent *icaltzutil_fetch_timezone(const char *location)
                         std_trans.year  = last_trans.year;
                         std_trans.month = last_trans.month;
                         std_trans.day   = last_trans.day;
-                        iter = icalrecur_iterator_new(standard.final_recur,
-                                                      std_trans);
+                        iter = icalrecur_iterator_new_r(&standard.final_recur,
+                                                      std_trans,
+                                                      0);
                         std_trans = icalrecur_iterator_next(iter);
                         icaltime_adjust(&std_trans, 0, 0, 0, -dst_type->gmtoff);
                         transitions[num_trans] = icaltime_as_timet(std_trans);
@@ -721,8 +722,9 @@ icalcomponent *icaltzutil_fetch_timezone(const char *location)
                         dst_trans.year  = last_trans.year;
                         dst_trans.month = last_trans.month;
                         dst_trans.day   = last_trans.day;
-                        iter = icalrecur_iterator_new(daylight.final_recur,
-                                                      dst_trans);
+                        iter = icalrecur_iterator_new_r(&daylight.final_recur,
+                                                      dst_trans,
+                                                      0);
                         dst_trans = icalrecur_iterator_next(iter);
                         icaltime_adjust(&dst_trans, 0, 0, 0, -std_type->gmtoff);
                         transitions[num_trans] = icaltime_as_timet(dst_trans);

@@ -635,13 +635,13 @@ static icalvalue *icalvalue_new_from_string_with_error(icalvalue_kind kind,
 
     case ICAL_RECUR_VALUE:
         {
-            struct icalrecurrencetype rt;
+            struct icalrecurrencetype *rt;
 
-            rt = icalrecurrencetype_from_string(str);
-            if (rt.freq != ICAL_NO_RECURRENCE) {
-                value = icalvalue_new_recur(rt);
+            rt = icalrecurrencetype_from_string_r(str);
+            if (rt != 0) {
+                value = icalvalue_new_recur(*rt);
+                icalrecurrencetype_free(rt);
             }
-            icalmemory_free_buffer(rt.rscale);
             break;
         }
 

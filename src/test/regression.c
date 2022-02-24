@@ -709,8 +709,8 @@ void test_component_foreach()
 void test_recur_iterator_set_start()
 {
     icaltimetype start = icaltime_from_string("20150526");
-    struct icalrecurrencetype recurrence = icalrecurrencetype_from_string("FREQ=WEEKLY");
-    icalrecur_iterator *iterator = icalrecur_iterator_new(recurrence, start);
+    struct icalrecurrencetype *recurrence = icalrecurrencetype_from_string_r("FREQ=WEEKLY");
+    icalrecur_iterator *iterator = icalrecur_iterator_new_r(recurrence, start, 1);
 
     icaltimetype next = icalrecur_iterator_next(iterator);
 
@@ -721,8 +721,8 @@ void test_recur_iterator_set_start()
 void test_recur_iterator_on_jan_1()
 {
     icaltimetype start = icaltime_from_string("20190101");
-    struct icalrecurrencetype recurrence = icalrecurrencetype_from_string("FREQ=WEEKLY;WKST=SU;INTERVAL=2;BYDAY=MO,TU,WE,TH,FR");
-    icalrecur_iterator *iterator = icalrecur_iterator_new(recurrence, start);
+    struct icalrecurrencetype *recurrence = icalrecurrencetype_from_string_r("FREQ=WEEKLY;WKST=SU;INTERVAL=2;BYDAY=MO,TU,WE,TH,FR");
+    icalrecur_iterator *iterator = icalrecur_iterator_new_r(recurrence, start, 1);
 
     icaltimetype next = icalrecur_iterator_next(iterator);
     ok("Next recurrence iterator result should be January 1", next.year == 2019 && next.month == 1 && next.day == 1);
@@ -1221,17 +1221,17 @@ void test_calendar()
 void test_increment(void);
 
 /* coverity[pass_by_value] */
-void print_occur(struct icalrecurrencetype recur, struct icaltimetype start)
+void print_occur(struct icalrecurrencetype *recur, struct icaltimetype start)
 {
     struct icaltimetype next;
     icalrecur_iterator *ritr;
 
     time_t tt = icaltime_as_timet(start);
 
-    printf("#### %s\n", icalrecurrencetype_as_string(&recur));
+    printf("#### %s\n", icalrecurrencetype_as_string(recur));
     printf("#### %s\n", ctime(&tt));
 
-    ritr = icalrecur_iterator_new(recur, start);
+    ritr = icalrecur_iterator_new_r(recur, start, 0);
     for (next = icalrecur_iterator_next(ritr);
          !icaltime_is_null_time(next);
          next = icalrecur_iterator_next(ritr)) {
@@ -1244,18 +1244,20 @@ void print_occur(struct icalrecurrencetype recur, struct icaltimetype start)
 
 void test_recur()
 {
-    struct icalrecurrencetype rt;
+    struct icalrecurrencetype *rt;
     struct icaltimetype start;
     time_t array[25];
     int i;
 
-    rt = icalrecurrencetype_from_string(
+    rt = icalrecurrencetype_from_string_r(
              "FREQ=MONTHLY;UNTIL=19971224T000000Z;INTERVAL=1;BYDAY=TU,2FR,3SA");
     start = icaltime_from_string("19970905T090000Z");
 
     if (VERBOSE) {
         print_occur(rt, start);
     }
+
+    icalrecurrencetype_free(rt);
 
     if (VERBOSE) {
         printf("\n  Using icalrecur_expand_recurrence\n");
@@ -1275,32 +1277,35 @@ void test_recur()
 
 void test_recur_encode_by_day()
 {
-    struct icalrecurrencetype rt;
+    struct icalrecurrencetype *rt;
     int ii;
 
-    rt = icalrecurrencetype_from_string("FREQ=WEEKLY;BYDAY=WE");
-    ok("Is weekly recurrence", (rt.freq == ICAL_WEEKLY_RECURRENCE));
-    ok("The by_day[0] is set", (rt.by_day[0] != ICAL_RECURRENCE_ARRAY_MAX));
-    ok("The by_day[1] is not set", (rt.by_day[1] == ICAL_RECURRENCE_ARRAY_MAX));
-    ok("The day of week is Wednesday", (icalrecurrencetype_day_day_of_week(rt.by_day[0]) == ICAL_WEDNESDAY_WEEKDAY));
-    ok("The position is 0", (icalrecurrencetype_day_position(rt.by_day[0]) == 0));
-    ok("Encoded value matches", (icalrecurrencetype_encode_day(ICAL_WEDNESDAY_WEEKDAY, 0) == rt.by_day[0]));
+    rt = icalrecurrencetype_from_string_r("FREQ=WEEKLY;BYDAY=WE");
+    ok("Is weekly recurrence", (rt->freq == ICAL_WEEKLY_RECURRENCE));
+    ok("The by_day[0] is set", (rt->by_day[0] != ICAL_RECURRENCE_ARRAY_MAX));
+    ok("The by_day[1] is not set", (rt->by_day[1] == ICAL_RECURRENCE_ARRAY_MAX));
+    ok("The day of week is Wednesday", (icalrecurrencetype_day_day_of_week(rt->by_day[0]) == ICAL_WEDNESDAY_WEEKDAY));
+    ok("The position is 0", (icalrecurrencetype_day_position(rt->by_day[0]) == 0));
+    ok("Encoded value matches", (icalrecurrencetype_encode_day(ICAL_WEDNESDAY_WEEKDAY, 0) == rt->by_day[0]));
+    icalrecurrencetype_free(rt);
 
-    rt = icalrecurrencetype_from_string("FREQ=MONTHLY;BYDAY=2FR");
-    ok("Is monthly recurrence", (rt.freq == ICAL_MONTHLY_RECURRENCE));
-    ok("The by_day[0] is set", (rt.by_day[0] != ICAL_RECURRENCE_ARRAY_MAX));
-    ok("The by_day[1] is not set", (rt.by_day[1] == ICAL_RECURRENCE_ARRAY_MAX));
-    ok("The day of week is Friday", (icalrecurrencetype_day_day_of_week(rt.by_day[0]) == ICAL_FRIDAY_WEEKDAY));
-    ok("The position is 2", (icalrecurrencetype_day_position(rt.by_day[0]) == 2));
-    ok("Encoded value matches", (icalrecurrencetype_encode_day(ICAL_FRIDAY_WEEKDAY, 2) == rt.by_day[0]));
+    rt = icalrecurrencetype_from_string_r("FREQ=MONTHLY;BYDAY=2FR");
+    ok("Is monthly recurrence", (rt->freq == ICAL_MONTHLY_RECURRENCE));
+    ok("The by_day[0] is set", (rt->by_day[0] != ICAL_RECURRENCE_ARRAY_MAX));
+    ok("The by_day[1] is not set", (rt->by_day[1] == ICAL_RECURRENCE_ARRAY_MAX));
+    ok("The day of week is Friday", (icalrecurrencetype_day_day_of_week(rt->by_day[0]) == ICAL_FRIDAY_WEEKDAY));
+    ok("The position is 2", (icalrecurrencetype_day_position(rt->by_day[0]) == 2));
+    ok("Encoded value matches", (icalrecurrencetype_encode_day(ICAL_FRIDAY_WEEKDAY, 2) == rt->by_day[0]));
+    icalrecurrencetype_free(rt);
 
-    rt = icalrecurrencetype_from_string("FREQ=YEARLY;BYDAY=-3MO");
-    ok("Is yearly recurrence", (rt.freq == ICAL_YEARLY_RECURRENCE));
-    ok("The by_day[0] is set", (rt.by_day[0] != ICAL_RECURRENCE_ARRAY_MAX));
-    ok("The by_day[1] is not set", (rt.by_day[1] == ICAL_RECURRENCE_ARRAY_MAX));
-    ok("The day of week is Monday", (icalrecurrencetype_day_day_of_week(rt.by_day[0]) == ICAL_MONDAY_WEEKDAY));
-    ok("The position is -3", (icalrecurrencetype_day_position(rt.by_day[0]) == -3));
-    ok("Encoded value matches", (icalrecurrencetype_encode_day(ICAL_MONDAY_WEEKDAY, -3) == rt.by_day[0]));
+    rt = icalrecurrencetype_from_string_r("FREQ=YEARLY;BYDAY=-3MO");
+    ok("Is yearly recurrence", (rt->freq == ICAL_YEARLY_RECURRENCE));
+    ok("The by_day[0] is set", (rt->by_day[0] != ICAL_RECURRENCE_ARRAY_MAX));
+    ok("The by_day[1] is not set", (rt->by_day[1] == ICAL_RECURRENCE_ARRAY_MAX));
+    ok("The day of week is Monday", (icalrecurrencetype_day_day_of_week(rt->by_day[0]) == ICAL_MONDAY_WEEKDAY));
+    ok("The position is -3", (icalrecurrencetype_day_position(rt->by_day[0]) == -3));
+    ok("Encoded value matches", (icalrecurrencetype_encode_day(ICAL_MONDAY_WEEKDAY, -3) == rt->by_day[0]));
+    icalrecurrencetype_free(rt);
 
     for (ii = -5; ii <= 5; ii++) {
         icalrecurrencetype_weekday wd;
@@ -1321,26 +1326,28 @@ void test_recur_encode_by_day()
 
 void test_recur_encode_by_month()
 {
-    struct icalrecurrencetype rt;
+    struct icalrecurrencetype *rt;
     int ii, jj;
 
-    rt = icalrecurrencetype_from_string("FREQ=WEEKLY;BYMONTH=2");
-    ok("Is weekly recurrence", (rt.freq == ICAL_WEEKLY_RECURRENCE));
-    ok("The by_month[0] is set", (rt.by_month[0] != ICAL_RECURRENCE_ARRAY_MAX));
-    ok("The by_month[1] is not set", (rt.by_month[1] == ICAL_RECURRENCE_ARRAY_MAX));
-    ok("The month is 2", (icalrecurrencetype_month_month(rt.by_month[0]) == 2));
-    ok("Is not leap month", (icalrecurrencetype_month_is_leap(rt.by_month[0]) == 0));
-    ok("Encoded value matches", (icalrecurrencetype_encode_month(2, 0) == rt.by_month[0]));
+    rt = icalrecurrencetype_from_string_r("FREQ=WEEKLY;BYMONTH=2");
+    ok("Is weekly recurrence", (rt->freq == ICAL_WEEKLY_RECURRENCE));
+    ok("The by_month[0] is set", (rt->by_month[0] != ICAL_RECURRENCE_ARRAY_MAX));
+    ok("The by_month[1] is not set", (rt->by_month[1] == ICAL_RECURRENCE_ARRAY_MAX));
+    ok("The month is 2", (icalrecurrencetype_month_month(rt->by_month[0]) == 2));
+    ok("Is not leap month", (icalrecurrencetype_month_is_leap(rt->by_month[0]) == 0));
+    ok("Encoded value matches", (icalrecurrencetype_encode_month(2, 0) == rt->by_month[0]));
+    icalrecurrencetype_free(rt);
 
-    rt = icalrecurrencetype_from_string("FREQ=MONTHLY;BYMONTH=3L");
-	if (rt.freq != ICAL_NO_RECURRENCE) {
-        ok("Is monthly recurrence", (rt.freq == ICAL_MONTHLY_RECURRENCE));
-        ok("The by_month[0] is set", (rt.by_month[0] != ICAL_RECURRENCE_ARRAY_MAX));
-        ok("The by_month[1] is not set", (rt.by_month[1] == ICAL_RECURRENCE_ARRAY_MAX));
-        ok("The month is 3", (icalrecurrencetype_month_month(rt.by_month[0]) == 3));
-        ok("Is leap month", (icalrecurrencetype_month_is_leap(rt.by_month[0]) != 0));
-        ok("Encoded value matches", (icalrecurrencetype_encode_month(3, 1) == rt.by_month[0]));
+    rt = icalrecurrencetype_from_string_r("FREQ=MONTHLY;BYMONTH=3L");
+	if (rt->freq != ICAL_NO_RECURRENCE) {
+        ok("Is monthly recurrence", (rt->freq == ICAL_MONTHLY_RECURRENCE));
+        ok("The by_month[0] is set", (rt->by_month[0] != ICAL_RECURRENCE_ARRAY_MAX));
+        ok("The by_month[1] is not set", (rt->by_month[1] == ICAL_RECURRENCE_ARRAY_MAX));
+        ok("The month is 3", (icalrecurrencetype_month_month(rt->by_month[0]) == 3));
+        ok("Is leap month", (icalrecurrencetype_month_is_leap(rt->by_month[0]) != 0));
+        ok("Encoded value matches", (icalrecurrencetype_encode_month(3, 1) == rt->by_month[0]));
 	}
+    icalrecurrencetype_free(rt);
 
     for (ii = 0; ii <= 1; ii++) {
         for (jj = 1; jj <= 12; jj++) {
@@ -1403,7 +1410,7 @@ void icalrecurrencetype_test()
     time_t tt;
 
     struct icalrecur_iterator_impl *itr =
-        (struct icalrecur_iterator_impl *)icalrecur_iterator_new(r, t);
+        (struct icalrecur_iterator_impl *)icalrecur_iterator_new_r(&r, t, 0);
 
     do {
 
@@ -2689,48 +2696,53 @@ void test_time_parser()
 
 void test_recur_parser()
 {
-    struct icalrecurrencetype rt;
+    struct icalrecurrencetype* rt;
+    struct icalrecurrencetype localRt;
     icalvalue *v = NULL;
     icalerrorstate es;
     const char *str;
 
     str =
         "FREQ=YEARLY;BYMONTH=1,2,3,4,8;BYYEARDAY=34,65,76,78;BYDAY=-1TU,3WE,-4FR,SA,SU;UNTIL=20000131T090000Z";
-    rt = icalrecurrencetype_from_string(str);
-    str_is(str, icalrecurrencetype_as_string(&rt), str);
+    rt = icalrecurrencetype_from_string_r(str);
+    str_is(str, icalrecurrencetype_as_string(rt), str);
 
     /* Add COUNT and make sure its ignored in lieu of UNTIL */
-    rt.count = 3;
-    str_is(str, icalrecurrencetype_as_string(&rt), str);
+    rt->count = 3;
+    str_is(str, icalrecurrencetype_as_string(rt), str);
 
     /* Try to create a new RRULE value with UNTIL + COUNT */
     es = icalerror_supress("BADARG");
-    v = icalvalue_new_recur(rt);
-    rt = icalvalue_get_recur(v);
+    v = icalvalue_new_recur(*rt);
+    icalrecurrencetype_free(rt);
+
+    localRt = icalvalue_get_recur(v);
     icalerror_restore("BADARG", es);
-    ok("COUNT + UNTIL not allowed", rt.freq == ICAL_NO_RECURRENCE);
+    ok("COUNT + UNTIL not allowed", localRt.freq == ICAL_NO_RECURRENCE);
 
     /* Try to parse a RRULE with illegal BY* part combination */
     str = "FREQ=DAILY;COUNT=3;BYDAY=-1TU,3WE,-4FR,SA,SU;BYYEARDAY=34,65,76,78;BYMONTH=1,2,3,4,8";
 
     es = icalerror_supress("MALFORMEDDATA");
-    rt = icalrecurrencetype_from_string(str);
+    rt = icalrecurrencetype_from_string_r(str);
     icalerror_restore("MALFORMEDDATA", es);
-    ok("DAILY + BYYEARDAY not allowed", rt.freq == ICAL_NO_RECURRENCE);
+    ok("DAILY + BYYEARDAY not allowed", rt == 0);
 
     /* Parse the same RRULE but ignore invalid BY* parts */
     ical_set_invalid_rrule_handling_setting(ICAL_RRULE_IGNORE_INVALID);
-    rt = icalrecurrencetype_from_string(str);
-    str_is(str, icalrecurrencetype_as_string(&rt),
+    rt = icalrecurrencetype_from_string_r(str);
+    str_is(str, icalrecurrencetype_as_string(rt),
 		   "FREQ=DAILY;BYMONTH=1,2,3,4,8;BYDAY=-1TU,3WE,-4FR,SA,SU;COUNT=3");
+    icalrecurrencetype_free(rt);
 
     /* Try to parse an RRULE value with UNTIL + COUNT */
     str = "FREQ=YEARLY;UNTIL=20000131T090000Z;COUNT=3";
 
     es = icalerror_supress("MALFORMEDDATA");
-    rt = icalrecurrencetype_from_string(str);
+    rt = icalrecurrencetype_from_string_r(str);
     icalerror_restore("MALFORMEDDATA", es);
-    ok(str, rt.freq == ICAL_NO_RECURRENCE);
+    ok(str, rt == 0);
+
     icalmemory_free_buffer(v);
 }
 

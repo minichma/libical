@@ -714,7 +714,7 @@ void icaltimezone_expand_vtimezone(icalcomponent *comp, int end_year, icalarray 
 
             icalarray_append(changes, &change);
 
-            rrule_iterator = icalrecur_iterator_new(rrule, dtstart);
+            rrule_iterator = icalrecur_iterator_new_r(&rrule, dtstart, 0);
             for (; rrule_iterator;) {
                 occ = icalrecur_iterator_next(rrule_iterator);
                 /* Skip dtstart since we just added it */
@@ -2380,7 +2380,7 @@ void icaltimezone_truncate_vtimezone(icalcomponent *vtz,
                     (void)icaltime_set_timezone(&rrule.until, NULL);
                 }
 
-                ritr = icalrecur_iterator_new(rrule, dtstart);
+                ritr = icalrecur_iterator_new_r(&rrule, dtstart, 0);
 
                 if (trunc_dtstart) {
                     /* Bump RRULE start to 1 year prior to our window open */

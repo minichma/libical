@@ -1314,7 +1314,17 @@ icalsetiter icalbdbset_begin_component(icalset *set, icalcomponent_kind kind,
             }
 
             if (itr.last_component == NULL) {
-                itr.ritr = icalrecur_iterator_new(recur, start);
+                struct icalrecurrencetype* tmp_recur = icalrecurrencetype_clone(&recur);
+                if (tmp_recur) {
+                    itr->ritr = icalrecur_iterator_new_r(tmp_recur, start, 1);
+                    if (!itr->ritr) {
+                        icalrecurrencetype_free(tmp_recur);
+                    }
+                }
+                else {
+                    itr->ritr = NULL;
+                }
+
                 next = icalrecur_iterator_next(itr.ritr);
                 itr.last_component = comp;
             } else {
@@ -1422,7 +1432,14 @@ icalcomponent *icalbdbset_form_a_matched_recurrence_component(icalsetiter *itr)
     }
 
     if (itr->ritr == NULL) {
-        itr->ritr = icalrecur_iterator_new(recur, start);
+        struct icalrecurrencetype *tmp_recur = icalrecurrencetype_clone(&recur);
+        if (tmp_recur) {
+            itr->ritr = icalrecur_iterator_new_r(tmp_recur, start, 1);
+            if (!itr->ritr) {
+                icalrecurrencetype_free(tmp_recur);
+            }
+        }
+
         next = icalrecur_iterator_next(itr->ritr);
         itr->last_component = comp;
     } else {
@@ -1536,7 +1553,14 @@ icalcomponent *icalbdbsetiter_to_next(icalset *set, icalsetiter *i)
             }
 
             if (i->ritr == NULL) {
-                i->ritr = icalrecur_iterator_new(recur, start);
+                struct icalrecurrencetype* tmp_recur = icalrecurrencetype_clone(&recur);
+                if (tmp_recur) {
+                    itr->ritr = icalrecur_iterator_new_r(tmp_recur, start, 1);
+                    if (!itr->ritr) {
+                        icalrecurrencetype_free(tmp_recur);
+                    }
+                }
+
                 next = icalrecur_iterator_next(i->ritr);
                 i->last_component = comp;
             } else {

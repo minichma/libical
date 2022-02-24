@@ -615,7 +615,7 @@ int main(int argc, char *argv[])
     }
 
     for (; r->dtstart; r++) {
-        struct icalrecurrencetype rrule;
+        struct icalrecurrencetype *rrule;
         struct icaltimetype dtstart, next;
         icalrecur_iterator *ritr;
         const char *sep = "";
@@ -630,8 +630,8 @@ int main(int argc, char *argv[])
         }
 
         dtstart = icaltime_from_string(r->dtstart);
-        rrule = icalrecurrencetype_from_string(r->rrule);
-        ritr = icalrecur_iterator_new(rrule, dtstart);
+        rrule = icalrecurrencetype_from_string_r(r->rrule);
+        ritr = icalrecur_iterator_new_r(rrule, dtstart, 1);
 
         if (!ritr) {
             fprintf(fp, " *** %s\n", icalerror_strerror(icalerrno));
@@ -670,7 +670,6 @@ int main(int argc, char *argv[])
         }
 
         icalrecur_iterator_free(ritr);
-        icalmemory_free_buffer(rrule.rscale);
     }
     fclose(fp);
 

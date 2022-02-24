@@ -3716,7 +3716,7 @@ short icalrecurrencetype_encode_month(int month, int is_leap)
 int icalrecur_expand_recurrence(const char *rule,
                                 time_t start, int count, time_t *array)
 {
-    struct icalrecurrencetype recur;
+    struct icalrecurrencetype *recur;
     icalrecur_iterator *ritr;
     time_t tt;
     struct icaltimetype icstart, next;
@@ -3726,8 +3726,9 @@ int icalrecur_expand_recurrence(const char *rule,
 
     icstart = icaltime_from_timet_with_zone(start, 0, 0);
 
-    recur = icalrecurrencetype_from_string(rule);
-    ritr = icalrecur_iterator_new(recur, icstart);
+    recur = icalrecurrencetype_from_string_r(rule);
+    ritr = (recur == 0) ? 0 : icalrecur_iterator_new_r(recur, icstart, 1);
+
     if (ritr) {
         for (next = icalrecur_iterator_next(ritr);
              !icaltime_is_null_time(next) && i < count;
@@ -3741,8 +3742,6 @@ int icalrecur_expand_recurrence(const char *rule,
         }
         icalrecur_iterator_free(ritr);
     }
-    if(recur.rscale)
-        icalmemory_free_buffer(recur.rscale);
 
     return 1;
 }

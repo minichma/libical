@@ -780,7 +780,7 @@ int icalproperty_recurrence_is_excluded(icalcomponent *comp,
          exrule != NULL; exrule = icalcomponent_get_next_property(comp, ICAL_EXRULE_PROPERTY)) {
 
         struct icalrecurrencetype recur = icalproperty_get_exrule(exrule);
-        icalrecur_iterator *exrule_itr = icalrecur_iterator_new(recur, *dtstart);
+        icalrecur_iterator *exrule_itr = icalrecur_iterator_new_r(&recur, *dtstart, 0);
         struct icaltimetype exrule_time;
 
         while (exrule_itr) {
@@ -933,7 +933,7 @@ void icalcomponent_foreach_recurrence(icalcomponent *comp,
          rrule = icalcomponent_get_next_property(comp, ICAL_RRULE_PROPERTY)) {
 
         struct icalrecurrencetype recur = icalproperty_get_rrule(rrule);
-        icalrecur_iterator *rrule_itr = icalrecur_iterator_new(recur, dtstart);
+        icalrecur_iterator *rrule_itr = icalrecur_iterator_new_r(&recur, dtstart, 0);
         struct icaltimetype rrule_time;
 
         if (!rrule_itr) continue;

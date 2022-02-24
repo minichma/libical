@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
         recur = icalproperty_get_rrule(rrule);
         start = icalproperty_get_dtstart(dtstart);
 
-        ritr = icalrecur_iterator_new(recur, start);
+        ritr = icalrecur_iterator_new_r(&recur, start, 0);
 
         tt = icaltime_as_timet(start);
 
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 
         icalrecur_iterator_free(ritr);
 
-        ritr = icalrecur_iterator_new(recur, start);
+        ritr = icalrecur_iterator_new_r(&recur, start, 0);
         for (next = icalrecur_iterator_next(ritr);
              !icaltime_is_null_time(next);
              next = icalrecur_iterator_next(ritr)) {
