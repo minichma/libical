@@ -27,17 +27,19 @@ How to use:
 @code
         icalproperty rrule;
         struct icalrecurrencetype recur;
+        struct icalrecurrencetype *p_recur;
         struct icaltimetype dtstart;
 
         rrule = icalcomponent_get_first_property(comp,ICAL_RRULE_PROPERTY);
         recur = icalproperty_get_rrule(rrule);
         start = icalproperty_get_dtstart(dtstart);
+        p_recur = &recur;
 @endcode
 
 Or, just make them up:
 
 @code
-        recur = icalrecurrencetype_from_string("FREQ=YEARLY;BYDAY=SU,WE");
+        p_recur = icalrecurrencetype_from_string_r("FREQ=YEARLY;BYDAY=SU,WE");
         dtstart = icaltime_from_string("19970101T123000")
 @endcode
 
@@ -45,7 +47,7 @@ Or, just make them up:
 
 @code
         icalrecur_iterator *ritr;
-        ritr = icalrecur_iterator_new(recur,start);
+        ritr = icalrecur_iterator_new_r(p_recur, start, 0);
 @endcode
 
 3) Iterator over the occurrences
@@ -56,6 +58,13 @@ Or, just make them up:
                && !icaltime_is_null_time(next){
                 Do something with next
         }
+@endcode
+
+4) Free the iterator (and rule if required)
+
+@code
+        icalrecur_iterator_free(ritr);
+        icalrecurrencetype_free(p_recur);
 @endcode
 
 Note that the time returned by icalrecur_iterator_next is in
