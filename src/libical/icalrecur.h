@@ -288,8 +288,16 @@ LIBICAL_ICAL_EXPORT short icalrecurrencetype_encode_month(int month, int is_leap
  * Recurrence rule parser
  */
 
-/** Convert between strings and recurrencetype structures. */
-LIBICAL_ICAL_EXPORT struct icalrecurrencetype icalrecurrencetype_from_string(const char *str);
+/** Convert between strings and recurrencetype structures.
+ *  @deprecated use icalrecurrencetype_from_string_r() instead
+ */
+LIBICAL_ICAL_EXPORT struct icalrecurrencetype icalrecurrencetype_from_string(const char* str);
+
+/** Convert between strings and recurrencetype structures.
+ *  The returned object must be freed via icalrecurrencetype_free().
+ *  @since 3.1
+ */
+LIBICAL_ICAL_EXPORT struct icalrecurrencetype *icalrecurrencetype_from_string_r(const char* str);
 
 LIBICAL_ICAL_EXPORT char *icalrecurrencetype_as_string(struct icalrecurrencetype *recur);
 

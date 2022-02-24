@@ -327,7 +327,7 @@ struct icalrecur_parser
     char *this_clause;
     char *next_clause;
 
-    struct icalrecurrencetype rt;
+    struct icalrecurrencetype *rt;
 };
 
 enum byrule
@@ -520,7 +520,7 @@ static int icalrecur_add_byrules(struct icalrecur_parser *parser, short *array,
 
         if (*t) {
             /* Check for leap month suffix (RSCALE only) */
-            if (array == parser->rt.by_month && strcmp(t, "L") == 0) {
+            if (array == parser->rt->by_month && strcmp(t, "L") == 0) {
                 if (icalrecurrencetype_rscale_is_supported()) {
                     /* The "L" suffix in a BYMONTH recur-rule-part
                        is encoded by setting a high-order bit */
@@ -550,8 +550,8 @@ static void sort_bydayrules(struct icalrecur_parser *parser)
     short *array;
     int week_start, one, two, i, j;
 
-    array = parser->rt.by_day;
-    week_start = parser->rt.week_start;
+    array = parser->rt->by_day;
+    week_start = parser->rt->week_start;
 
     for (i = 0;
          i < ICAL_BY_DAY_SIZE && array[i] != ICAL_RECURRENCE_ARRAY_MAX; i++) {
@@ -580,7 +580,7 @@ static int icalrecur_add_bydayrules(struct icalrecur_parser *parser,
 {
     char *t, *n;
     int i = 0;
-    short *array = parser->rt.by_day;
+    short *array = parser->rt->by_day;
     char *vals_copy;
 
     vals_copy = icalmemory_strdup(vals);
@@ -639,15 +639,33 @@ static int icalrecur_add_bydayrules(struct icalrecur_parser *parser,
     return 0;
 }
 
-struct icalrecurrencetype icalrecurrencetype_from_string(const char *str)
+struct icalrecurrencetype icalrecurrencetype_from_string(const char *str) {
+
+    struct icalrecurrencetype *byref = icalrecurrencetype_from_string_r(str);
+    struct icalrecurrencetype res;
+
+    if (byref) {
+        res = *byref;
+
+        // We only free the outer struct, but not any referenced memory (i.e. rscale). This needs
+        // to be done by the caller.
+        icalmemory_free_buffer(byref);
+    } else {
+        icalrecurrencetype_clear(&res);
+    }
+
+    return res;
+}
+
+struct icalrecurrencetype *icalrecurrencetype_from_string_r(const char *str)
 {
     struct icalrecur_parser parser;
     enum byrule byrule;
+    int failed = 0;
+
+    icalerror_check_arg_re(str != 0, "str", 0);
 
     memset(&parser, 0, sizeof(parser));
-    icalrecurrencetype_clear(&parser.rt);
-
-    icalerror_check_arg_re(str != 0, "str", parser.rt);
 
     /* Set up the parser struct */
     parser.rule = str;
@@ -656,8 +674,15 @@ struct icalrecurrencetype icalrecurrencetype_from_string(const char *str)
 
     if (parser.copy == 0) {
         icalerror_set_errno(ICAL_NEWFAILED_ERROR);
-        return parser.rt;
+        return 0;
     }
+
+    parser.rt = icalmemory_new_buffer(sizeof(*parser.rt));
+    if (!parser.rt) {
+        return 0;
+    }
+
+    icalrecurrencetype_clear(parser.rt);
 
     /* Loop through all of the clauses */
     for (icalrecur_first_clause(&parser);
@@ -679,66 +704,66 @@ struct icalrecurrencetype icalrecurrencetype_from_string(const char *str)
                 break;
             }
         } else if (strcasecmp(name, "FREQ") == 0) {
-            if (parser.rt.freq != ICAL_NO_RECURRENCE) {
+            if (parser.rt->freq != ICAL_NO_RECURRENCE) {
                 /* Don't allow multiple FREQs */
                 r = -1;
             } else {
-                parser.rt.freq = icalrecur_string_to_freq(value);
-                if (parser.rt.freq == ICAL_NO_RECURRENCE) {
+                parser.rt->freq = icalrecur_string_to_freq(value);
+                if (parser.rt->freq == ICAL_NO_RECURRENCE) {
                     r = -1;
                 }
             }
         } else if (strcasecmp(name, "RSCALE") == 0) {
-            if (parser.rt.rscale != NULL) {
+            if (parser.rt->rscale != NULL) {
                 /* Don't allow multiple RSCALEs */
                 r = -1;
             } else {
-                parser.rt.rscale = icalmemory_strdup(value);
+                parser.rt->rscale = icalmemory_strdup(value);
             }
         } else if (strcasecmp(name, "SKIP") == 0) {
-            if (parser.rt.skip != ICAL_SKIP_OMIT) {
+            if (parser.rt->skip != ICAL_SKIP_OMIT) {
                 /* Don't allow multiple SKIPs */
                 r = -1;
             } else {
-                parser.rt.skip = icalrecur_string_to_skip(value);
-                if (parser.rt.skip == ICAL_SKIP_UNDEFINED) {
+                parser.rt->skip = icalrecur_string_to_skip(value);
+                if (parser.rt->skip == ICAL_SKIP_UNDEFINED) {
                     r = -1;
                 }
             }
         } else if (strcasecmp(name, "COUNT") == 0) {
-            if (parser.rt.count > 0 || !icaltime_is_null_time(parser.rt.until)) {
+            if (parser.rt->count > 0 || !icaltime_is_null_time(parser.rt->until)) {
                 /* Don't allow multiple COUNTs, or both COUNT and UNTIL */
                 r = -1;
             } else {
-                parser.rt.count = atoi(value);
+                parser.rt->count = atoi(value);
                 /* don't allow count to be less than 1 */
-                if (parser.rt.count < 1) r = -1;
+                if (parser.rt->count < 1) r = -1;
             }
         } else if (strcasecmp(name, "UNTIL") == 0) {
-            if (parser.rt.count > 0 || !icaltime_is_null_time(parser.rt.until)) {
+            if (parser.rt->count > 0 || !icaltime_is_null_time(parser.rt->until)) {
                 /* Don't allow multiple COUNTs, or both COUNT and UNTIL */
                 r = -1;
             } else {
-                parser.rt.until = icaltime_from_string(value);
-                if (icaltime_is_null_time(parser.rt.until)) r = -1;
+                parser.rt->until = icaltime_from_string(value);
+                if (icaltime_is_null_time(parser.rt->until)) r = -1;
             }
         } else if (strcasecmp(name, "INTERVAL") == 0) {
-            if (parser.rt.interval > 1) {
+            if (parser.rt->interval > 1) {
                 /* Don't allow multiple INTERVALs */
                 r = -1;
             } else {
-                parser.rt.interval = (short)atoi(value);
+                parser.rt->interval = (short)atoi(value);
                 /* don't allow an interval to be less than 1
                    (RFC specifies an interval must be a positive integer) */
-                if (parser.rt.interval < 1) r = -1;
+                if (parser.rt->interval < 1) r = -1;
             }
         } else if (strcasecmp(name, "WKST") == 0) {
-            if (parser.rt.week_start != ICAL_MONDAY_WEEKDAY) {
+            if (parser.rt->week_start != ICAL_MONDAY_WEEKDAY) {
                 /* Don't allow multiple WKSTs */
                 r = -1;
             } else {
-                parser.rt.week_start = icalrecur_string_to_weekday(value);
-                if (parser.rt.week_start == ICAL_NO_WEEKDAY) {
+                parser.rt->week_start = icalrecur_string_to_weekday(value);
+                if (parser.rt->week_start == ICAL_NO_WEEKDAY) {
                     r = -1;
                 } else {
                     sort_bydayrules(&parser);
@@ -752,7 +777,7 @@ struct icalrecurrencetype icalrecurrencetype_from_string(const char *str)
                     if (byrule == BY_DAY) {
                         r = icalrecur_add_bydayrules(&parser, value);
                     } else {
-                        short *array = (short *)(recur_map[byrule].offset + (size_t) &parser.rt);
+                        short *array = (short *)(recur_map[byrule].offset + (size_t) parser.rt);
                         r = icalrecur_add_byrules(&parser, array,
                                                   recur_map[byrule].min,
                                                   recur_map[byrule].size,
@@ -772,28 +797,22 @@ struct icalrecurrencetype icalrecurrencetype_from_string(const char *str)
             if (r != -2) {
                 icalerror_set_errno(ICAL_MALFORMEDDATA_ERROR);
             }
-            if (parser.rt.rscale) {
-                icalmemory_free_buffer(parser.rt.rscale);
-            }
-            icalrecurrencetype_clear(&parser.rt);
+            failed = 1;
             break;
         }
     }
 
-    for (byrule = 0; byrule < NUM_BY_PARTS; byrule++) {
-        short *array = (short *)(recur_map[byrule].offset + (size_t) &parser.rt);
+    for (byrule = 0; (byrule < NUM_BY_PARTS) && !failed; byrule++) {
+        short *array = (short *)(recur_map[byrule].offset + (size_t) parser.rt);
 
         if (array[0] != ICAL_RECURRENCE_ARRAY_MAX &&
-            expand_map[parser.rt.freq].map[byrule] == ILLEGAL) {
+            expand_map[parser.rt->freq].map[byrule] == ILLEGAL) {
             ical_invalid_rrule_handling rruleHandlingSetting =
                 ical_get_invalid_rrule_handling_setting();
 
             if (rruleHandlingSetting == ICAL_RRULE_TREAT_AS_ERROR) {
                 icalerror_set_errno(ICAL_MALFORMEDDATA_ERROR);
-                if (parser.rt.rscale) {
-                    icalmemory_free_buffer(parser.rt.rscale);
-                }
-                icalrecurrencetype_clear(&parser.rt);
+                failed = 1;
                 break;
             } else {
                 array[0] = ICAL_RECURRENCE_ARRAY_MAX;
@@ -802,6 +821,11 @@ struct icalrecurrencetype icalrecurrencetype_from_string(const char *str)
     }
 
     icalmemory_free_buffer(parser.copy);
+
+    if (failed) {
+        icalrecurrencetype_free(parser.rt);
+        parser.rt = 0;
+    }
 
     return parser.rt;
 }
