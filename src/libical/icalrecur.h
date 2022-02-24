@@ -295,6 +295,19 @@ LIBICAL_ICAL_EXPORT char *icalrecurrencetype_as_string(struct icalrecurrencetype
 
 LIBICAL_ICAL_EXPORT char *icalrecurrencetype_as_string_r(struct icalrecurrencetype *recur);
 
+/** Clones the given structure, including referenced structures.
+ *  The returned object must be freed via icalrecurrencetype_free().
+ *  @since 3.1
+ */
+LIBICAL_ICAL_EXPORT struct icalrecurrencetype* icalrecurrencetype_clone(struct icalrecurrencetype* recur);
+
+/** Frees the given object and any referenced memory.
+ *  This function should only be used with objects that have been allocated with icalrecurrencetype_from_string_r()
+ *  or icalrecurrencetype_clone().
+ *  @since 3.1
+ */
+LIBICAL_ICAL_EXPORT void icalrecurrencetype_free(struct icalrecurrencetype* recur);
+
 /*
  * Recurrence iteration routines
  */

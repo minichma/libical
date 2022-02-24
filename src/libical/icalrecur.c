@@ -806,6 +806,42 @@ struct icalrecurrencetype icalrecurrencetype_from_string(const char *str)
     return parser.rt;
 }
 
+struct icalrecurrencetype *icalrecurrencetype_clone(struct icalrecurrencetype* recur) {
+
+    icalerror_check_arg_re(recur != 0, "recur", 0);
+
+    struct icalrecurrencetype *res;
+    
+    res = icalmemory_new_buffer(sizeof(*res));
+    if (!res) {
+        return 0;
+    }
+
+    memcpy(res, recur, sizeof(*res));
+
+    if (recur->rscale) {
+        res->rscale = icalmemory_strdup(recur->rscale);
+        if (!res->rscale) {
+            icalmemory_free_buffer(res);
+            return 0;
+        }
+    }
+
+    return res;
+}
+
+void icalrecurrencetype_free(struct icalrecurrencetype* recur) {
+
+    icalerror_check_arg_rv(recur != 0, "recur");
+
+    if (recur->rscale) {
+        icalmemory_free_buffer(recur->rscale);
+        recur->rscale = 0;
+    }
+
+    icalmemory_free_buffer(recur);
+}
+
 char *icalrecurrencetype_as_string(struct icalrecurrencetype *recur)
 {
     char *buf;
